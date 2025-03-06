@@ -31,7 +31,7 @@ if [ $isNonInteractive = false ]; then
     read -p "Are you sure, you made changes to .env file (y/n)? " answer
     case ${answer:0:1} in
         y|Y|yes|YES|Yes )
-          echo "Continiuing Installation!"
+          echo "Continuing Installation!"
         ;;
         * )
           nano .env
@@ -63,19 +63,14 @@ fi
 echo " "
 tput setaf 4;
 echo "#########################################################################"
-echo "Installing curl..."
+echo "Installing required dependencies"
 echo "#########################################################################"
-if [ -x "$(command -v curl)" ]; then
-  tput setaf 2; echo "CURL already installed, skipping."
-else
-  sudo apt update && sudo apt install curl -y
-  tput setaf 2; echo "CURL installed!!!"
-fi
+apt update && apt install -y curl make
 
 echo " "
 tput setaf 4;
 echo "#########################################################################"
-echo "Installing Docker..."
+echo "Installing Docker and Docker Compose"
 echo "#########################################################################"
 if [ -x "$(command -v docker)" ]; then
   tput setaf 2; echo "Docker already installed, skipping."
@@ -84,13 +79,7 @@ else
   tput setaf 2; echo "Docker installed!!!"
 fi
 
-
-echo " "
-tput setaf 4;
-echo "#########################################################################"
-echo "Installing Docker Compose"
-echo "#########################################################################"
-if [ -x "$(command -v docker compose)" ]; then
+if [ -x "$(command -v docker-compose)" ]; then
   tput setaf 2; echo "Docker Compose already installed, skipping."
 else
   curl -L "https://github.com/docker/compose/releases/download/v2.5.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
@@ -99,25 +88,12 @@ else
   tput setaf 2; echo "Docker Compose installed!!!"
 fi
 
-
-echo " "
-tput setaf 4;
-echo "#########################################################################"
-echo "Installing make"
-echo "#########################################################################"
-if [ -x "$(command -v make)" ]; then
-  tput setaf 2; echo "make already installed, skipping."
-else
-  apt install make
-fi
-
 echo " "
 tput setaf 4;
 echo "#########################################################################"
 echo "Checking Docker status"
 echo "#########################################################################"
 if docker info >/dev/null 2>&1; then
-  tput setaf 4;
   echo "Docker is running."
 else
   tput setaf 1;
@@ -125,8 +101,6 @@ else
   echo "You can run docker service using sudo systemctl start docker"
   exit 1
 fi
-
-
 
 echo " "
 tput setaf 4;
@@ -151,3 +125,44 @@ if [ "${failed}" -eq 0 ]; then
 else
   tput setaf 1 && printf "\n%s\n" "reNgine installation failed!!"
 fi
+
+# Install Go tools
+declare -A gotools=(
+  ["gf"]="go install -v github.com/tomnomnom/gf@latest"
+  ["ffuf"]="go install -v github.com/ffuf/ffuf/v2@latest"
+  ["nuclei"]="go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest"
+  ["httpx"]="go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest"
+)
+
+for tool in "${!gotools[@]}"; do
+  echo "Installing $tool..."
+  eval "${gotools[$tool]}"
+  echo "$tool installed!"
+done
+
+# Install Python tools
+declare -A pipxtools=(
+  ["dnsvalidator"]="vortexau/dnsvalidator"
+  ["wafw00f"]="EnableSecurity/wafw00f"
+  ["commix"]="commixproject/commix"
+)
+
+for tool in "${!pipxtools[@]}"; do
+  echo "Installing $tool via pipx..."
+  pipx install "git+https://github.com/${pipxtools[$tool]}"
+  echo "$tool installed!"
+done
+
+# Clone repositories
+declare -A repos=(
+  ["gf"]="tomnomnom/gf"
+  ["massdns"]="blechschmidt/massdns"
+)
+
+for repo in "${!repos[@]}"; do
+  echo "Cloning repository $repo..."
+  git clone "https://github.com/${repos[$repo]}.git"
+  echo "$repo cloned!"
+done
+
+echo "Installation complete!"
